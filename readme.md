@@ -54,9 +54,17 @@ starter = new JavaWebStart(myJNLPXml);
 // Optionally, await the download first or only
 // await starter.download();
 
-// Or just run
+// Or just run (potentially with options)
 await starter.run();
 ```
+
+## Run options
+The run method can taken an options object, with the following optional properties:
+- A jar location
+- An alternative 'WritableStream' for
+  - stdout
+  - stderr
+- An alternative `ReadableStream' for the reading input
 
 ## Disclaimer
 Java Web Start

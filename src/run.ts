@@ -12,14 +12,19 @@ JavaWebStart.fromArgv(...process.argv)
 		 */
 		process.on("uncaughtException", (error) => {
 			console.error(error, error.stack);
-			javaWebStart.stop();
+			process.exit(1);
 		});
+
 		/**
 		 * Make sure the process interrupted properly upon sigint!
 		 */
 		process.on("SIGINT", () => {
-			javaWebStart.stop();
+			process.exit(1);
 		});
+
+		process.on("beforeExit",()=>{
+			javaWebStart.stop("SIGINT");
+		})
 
 		console.info(javaWebStart.meta);
 		await new Promise<void>((resolve) => {

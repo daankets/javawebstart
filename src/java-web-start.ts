@@ -8,11 +8,18 @@ import * as Path from "path";
 import {PathLike, WriteStream} from "fs";
 import * as cliProgress from "cli-progress";
 import {SingleBar} from "cli-progress";
+import {EventEmitter} from "events";
 
+/**
+ * The main class of the package, a wrapper around a JNLP XML Structure.
+ * An instance of this class can be created by construction via an xml object,
+ * via parsing a string or via downloading from an http(s):// or file:// url.
+ */
 export class JavaWebStart {
+	private $eventEmitter = new EventEmitter();
 
 	/**
-	 * Creates a new JavaWebStart instance, using the location of a JNLP file.
+	 * Creates a new JavaWebStart instance, from the XML data of a JNLP file.
 	 * @param jnlpXML The XML Document for the JNLP file
 	 */
 	constructor(private readonly jnlpXML: Document) {
@@ -20,10 +27,10 @@ export class JavaWebStart {
 
 	/**
 	 * Downloads a JNLP file from a url. This can be a file url.
-	 * @param jnlpLocation http(s) or local location of the JNLP file.
+	 * @param jnlpLocation http(s):// or file:// location of the JNLP file.
 	 */
-	static async downloadJNLP(jnlpLocation: URL) {
-		let data: string | null = null;
+	static async downloadJNLP(jnlpLocation: URL): Promise<JavaWebStart> {
+		let data: string | null;
 		if (jnlpLocation.protocol.startsWith("http")) {
 			data = await new Promise((resolve, reject) => {
 				const client = jnlpLocation.protocol.startsWith("https") ? https : http;
@@ -48,35 +55,60 @@ export class JavaWebStart {
 		return JavaWebStart.parse(data as string);
 	}
 
+	/**
+	 * Parses a JavaWebStart instances by reading raw JNLP data from a string.
+	 * @param data The raw JNLP XML data.
+	 */
 	static parse(data: string): JavaWebStart {
 		return new JavaWebStart(parseXml(data));
 	}
 
+	/**
+	 * Returns the title from the JNLP meta information
+	 */
 	get title(): string {
 		return (this.jnlpXML.get("//information/title") as Text)?.text();
 	}
 
+	/**
+	 * Returns the vendor from the JNLP meta information
+	 */
 	get vendor(): string | null {
 		return (this.jnlpXML.get("//information/vendor") as Text)?.text();
 	}
 
+	/**
+	 * Returns the homepage from the JNLP meta information
+	 */
 	get homepage(): string | null {
 		return (this.jnlpXML.get("//information/homepage") as Element)?.attr("href")?.value() || null;
 	}
 
+	/**
+	 * Returns the JAR location from the JNLP file
+	 */
 	get jarLocation(): string {
 		const codebase = this.jnlpXML.root()?.attr("codebase")?.value();
 		return `${codebase}/${this.jarName}`;
 	}
 
+	/**
+	 * Returns the name of the JAR file from the JNLP file
+	 */
 	get jarName(): string | null {
 		return (this.jnlpXML.get("//resources/jar") as Element)?.attr("href")?.value() || null;
 	}
 
+	/**
+	 * Returns the name of the main class from the JNLP file
+	 */
 	get mainClass(): string | null {
 		return (this.jnlpXML.get("//application-desc") as Element)?.attr("main-class")?.value() || null;
 	}
 
+	/**
+	 * Returns all meta info from the JNLP file
+	 */
 	get meta(): object {
 		return {
 			title: this.title,
@@ -88,12 +120,9 @@ export class JavaWebStart {
 	}
 
 	/**
-	 * Calling stop will stop any running java process, and return a promise.
+	 * Parse the JavaWebStart info from the process.argv
+	 * @param args Process argv
 	 */
-	async stop(): Promise<void> {
-
-	}
-
 	static async fromArgv(...args: string[]): Promise<JavaWebStart> {
 		if (args.length < 3) {
 			console.warn("Usage: javawebstart <jnlpUrl>")
@@ -102,6 +131,9 @@ export class JavaWebStart {
 		return JavaWebStart.downloadJNLP(new URL(args[2]));
 	}
 
+	/**
+	 * Downloads the JAR file, and returns a promise for it's path.
+	 */
 	async download(): Promise<PathLike> {
 		const jarLocation = new URL(this.jarLocation);
 
@@ -164,17 +196,32 @@ export class JavaWebStart {
 		});
 	}
 
+	/**
+	 * Method for interrupting a running web start process. Will send SIGINT or SIGTERM to the child process.
+	 * @param signal? Optional signal (SIGINT or SIGTERM)
+	 */
+	stop(signal: "SIGINT" | "SIGTERM" = "SIGINT"): void {
+		this.$eventEmitter.emit("stop", signal);
+	}
+
+	/**
+	 * Runs a JAR file - optionally downloading it first - and returns a promise for the exit code.
+	 * @param jarLocation Location of the jar file to run (bypass download)
+	 * @param stdout Alternative stdout WritableStream for capturing std output
+	 * @param stderr Alternative stderr WritableStream for capturing err output
+	 * @param stdin Alternative stdin ReadableStream for providing input
+	 */
 	async run({
 		          jarLocation,
 		          stdout,
 		          stderr,
 		          stdin
-	}: {
+	          }: {
 		jarLocation?: string,
 		stdout?: NodeJS.WritableStream,
 		stderr?: NodeJS.WritableStream,
 		stdin?: NodeJS.ReadableStream
-	}): Promise<number> {
+	} = {}): Promise<number> {
 		const jarPath = jarLocation || await this.download();
 		if (!fs.existsSync(jarPath)) {
 			throw new Error("Jar file not found!");
@@ -190,6 +237,9 @@ export class JavaWebStart {
 		try {
 			childProcessRun = new Promise<number>((resolve, reject) => {
 				const child = spawn("java", ["-cp", jarPath.toString(), this.mainClass as string], {});
+				const l = this.$eventEmitter.on("stop", (signal) => {
+					child.kill(signal || "SIGTERM");
+				});
 				child.stdout.pipe(stdoutStream);
 				child.stderr.pipe(stderrStream);
 				stdinStream.pipe(child.stdin);
@@ -201,6 +251,7 @@ export class JavaWebStart {
 					resolve(code || 0);
 				})
 			});
+
 			await childProcessRun;
 			return childProcessRun;
 		} catch (error) {
