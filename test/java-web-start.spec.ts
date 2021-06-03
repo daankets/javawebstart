@@ -13,7 +13,7 @@ const EXPECTED_META_INFO = Object.freeze({
 	title: "Sample JNLP",
 	homepage: "https://github.com/daankets/javawebstart",
 	jarLocation: JAR_URL,
-	mainClass: "sample.MainClass"
+	mainClass: "MainClass"
 });
 
 describe("The JavaWebStart package", () => {
@@ -40,5 +40,4 @@ describe("The JavaWebStart package", () => {
 			assert.deepEqual(jws.meta, EXPECTED_META_INFO, "Invalid meta info");
 		});
 	});
-	context("Running")
 });
