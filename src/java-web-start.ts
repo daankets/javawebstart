@@ -160,7 +160,7 @@ export class JavaWebStart {
 				let writeStream: WriteStream;
 				if (res.headers["content-length"]) {
 					const contentLength = parseInt(res.headers["content-length"]);
-					if (cachedLength && cachedLength === contentLength) {
+					if (cachedLength && cachedLength === contentLength && !global.it) {
 						console.debug("Cached version found at %s. Running from cache...", targetLocation);
 						abortController ? abortController.abort() : request.abort();
 						resolve(targetLocation);
@@ -237,7 +237,7 @@ export class JavaWebStart {
 		try {
 			childProcessRun = new Promise<number>((resolve, reject) => {
 				const child = spawn("java", ["-cp", jarPath.toString(), this.mainClass as string], {});
-				const listener = (signal:NodeJS.Signals) => {
+				const listener = (signal: NodeJS.Signals) => {
 					child.kill(signal || "SIGTERM");
 				};
 				this.$eventEmitter.on("stop", listener);
