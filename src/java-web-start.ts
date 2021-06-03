@@ -166,6 +166,10 @@ export class JavaWebStart {
 						resolve(targetLocation);
 						return;
 					}
+					if (res.statusCode!==200) {
+						console.warn(res.statusCode,res.statusMessage);
+						reject("Download failed!");
+					}
 					writeStream = fs.createWriteStream(targetLocation, {encoding: "binary"});
 					console.debug("Downloading %s ...", this.jarName);
 					progress = new cliProgress.SingleBar({
