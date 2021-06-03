@@ -44,6 +44,7 @@ describe("The JavaWebStart package", function() {
 		it("Can download a hosted JAR file", async() => {
 			const jws = await JavaWebStart.downloadJNLP(new URL(JNLP_URL));
 			const localFile = await jws.download();
+			assert.equal(localFile, path.join(process.cwd(), "sample.jar"));
 			assert.isTrue(existsSync(localFile), "File does not exist!");
 			const stats = statSync(localFile);
 			assert.isTrue(stats.isFile(), "Not a file!");
@@ -58,6 +59,7 @@ describe("The JavaWebStart package", function() {
 					output += chunk.toString();
 				}
 			}
+
 			const jws = await JavaWebStart.downloadJNLP(new URL(JNLP_URL));
 			const stdout = new TempWritable();
 

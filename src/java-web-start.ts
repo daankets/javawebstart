@@ -137,7 +137,7 @@ export class JavaWebStart {
 	async download(): Promise<PathLike> {
 		const jarLocation = new URL(this.jarLocation);
 
-		return new Promise((resolve, reject) => {
+		return await new Promise((resolve, reject) => {
 			if (!this.jarName) {
 				reject("No jar location!");
 			}
@@ -160,14 +160,14 @@ export class JavaWebStart {
 				let writeStream: WriteStream;
 				if (res.headers["content-length"]) {
 					const contentLength = parseInt(res.headers["content-length"]);
-					if (cachedLength && cachedLength === contentLength && !global.it) {
+					if (cachedLength && cachedLength === contentLength) {
 						console.debug("Cached version found at %s. Running from cache...", targetLocation);
 						abortController ? abortController.abort() : request.abort();
 						resolve(targetLocation);
 						return;
 					}
-					if (res.statusCode!==200) {
-						console.warn(res.statusCode,res.statusMessage);
+					if ((res.statusCode as number) >= 400) {
+						console.warn(res.statusCode, res.statusMessage);
 						reject("Download failed!");
 					}
 					writeStream = fs.createWriteStream(targetLocation, {encoding: "binary"});
@@ -180,11 +180,21 @@ export class JavaWebStart {
 					});
 					progress.start(contentLength, 0, {})
 				}
+				res.on("error", (error) => {
+					progress && progress.stop();
+					// console.debug(`= ${counter}b`);
+					writeStream.once("close",()=>{
+						reject(error);
+					});
+					writeStream.close();
+				});
 				res.on("end", () => {
 					progress && progress.stop();
 					// console.debug(`= ${counter}b`);
+					writeStream.once("close",()=>{
+						resolve(targetLocation);
+					})
 					writeStream.close();
-					resolve(targetLocation);
 				})
 				res.on("data", (data) => {
 					// console.debug(`+ ${data.length}b`);
