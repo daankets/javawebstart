@@ -66,6 +66,17 @@ The run method can taken an options object, with the following optional properti
   - stderr
 - An alternative `ReadableStream' for the reading input
 
+## Credits
+### cli-progress
+Copyright (c) 2015-2020 Andi Dittrich (MIT LICENSE)
+
+[LICENSE](https://raw.githubusercontent.com/npkgz/cli-progress/master/LICENSE.md)
+
+### libxmljs2
+Copyright 2009, Squish Tech, LLC. All rights reserved.
+
+[LICENSE](https://raw.githubusercontent.com/marudor/libxmljs2/main/LICENSE)
+
 ## Disclaimer
 Java Web Start
 It is up to you to validate if the JNLP and jar file you wish to run come
