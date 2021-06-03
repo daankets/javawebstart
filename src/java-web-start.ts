@@ -1,6 +1,7 @@
 import {URL} from "url";
 import {spawn} from "child_process";
 import * as http from "http";
+import * as https from "https";
 import * as fs from "fs";
 import {Document, Element, parseXml, Text} from "libxmljs2";
 import * as Path from "path";
@@ -25,7 +26,8 @@ export class JavaWebStart {
 		let data: string | null = null;
 		if (jnlpLocation.protocol.startsWith("http")) {
 			data = await new Promise((resolve, reject) => {
-				const request = http.get(jnlpLocation, (res) => {
+				const client = jnlpLocation.protocol.startsWith("https") ? https : http;
+				const request = client.get(jnlpLocation, (res) => {
 					let dataSegments: string[] | null = [];
 					res.on("data", (data) => {
 						dataSegments && dataSegments.push(data);

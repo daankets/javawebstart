@@ -1,6 +1,6 @@
 .idea
 .DS_Store
 *.tgz
-*.jar
+/*.jar
 node_modules
 lib
