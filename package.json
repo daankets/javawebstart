@@ -1,0 +1,47 @@
+{
+	"name": "javawebstart",
+	"version": "1.0.0",
+	"description": "A module for running JNLP files or urls",
+	"main": "lib/index.js",
+	"author": {
+		"name": "Daan Kets",
+		"email": "daankets@blackbit.be"
+	},
+	"bin": {
+		"javawebstart": "lib/run.js"
+	},
+	"scripts": {
+		"clean": "npx tsc --build --clean",
+		"test": "npx mocha -r ts-node/register test/**/*.spec.?s",
+		"build": "npx tsc --build",
+		"start": "node lib/run.js"
+	},
+	"keywords": [
+		"java",
+		"webstart",
+		"jnlp"
+	],
+	"license": "MIT",
+	"devDependencies": {
+		"@types/chai": "^4.2.18",
+		"@types/cli-progress": "^3.9.1",
+		"@types/mocha": "^8.2.2",
+		"@types/node": "^15.12.0",
+		"chai": "^4.3.4",
+		"mocha": "^8.4.0",
+		"ts-node": "^10.0.0",
+		"tslint": "^6.1.3",
+		"typescript": "^4.3.2"
+	},
+	"dependencies": {
+		"cli-progress": "^3.9.0",
+		"libxmljs2": "^0.27.0"
+	},
+	"engines": {
+		"node": ">=14.x.x"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git@github.com:daankets/javawebstart.git"
+	}
+}
