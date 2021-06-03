@@ -1,3 +1,4 @@
+[![Node.js CI](https://github.com/daankets/javawebstart/actions/workflows/node.js.yml/badge.svg)](https://github.com/daankets/javawebstart/actions/workflows/node.js.yml)
 # About
 This is a NodeJS utility & library for running Java Web Start pacages with a java version that does not (no longer) include the `javaws` feature.
 The utility is written in TypeScript, and comes packaged an installable as an NPM package.
