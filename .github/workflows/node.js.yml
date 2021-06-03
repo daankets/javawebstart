@@ -26,6 +26,10 @@ jobs:
         with:
           distribution: 'adopt' # See 'Supported distributions' for available options
           java-version: '13'
+      - name: Remove Files
+        uses: JesseTG/rm@v1.0.2
+        with:
+          path: "sample.jar"
       - run: npm ci
       - run: npm run build --if-present
       - run: npm test
