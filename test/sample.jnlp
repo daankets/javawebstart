@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<jnlp spec="1.0+" codebase="http://host.domain/path" href="file.jnlp">
+<jnlp spec="1.0+" codebase="https://raw.githubusercontent.com/daankets/javawebstart/develop/test" href="sample.jnlp">
 	<information>
 		<title>Sample JNLP</title>
 		<vendor>Daan Kets</vendor>
-		<homepage href="http://host.domain"/>
+		<homepage href="https://github.com/daankets/javawebstart"/>
 		<offline-allowed/>
 		<shortcut install="true">
 			<desktop/>
@@ -16,6 +16,6 @@
 		<j2se version="1.5+"/>
 		<jar href="sample.jar"/>
 	</resources>
-	<application-desc main-class="sample.MainClass"/>
+	<application-desc main-class="MainClass"/>
 </jnlp>
 
