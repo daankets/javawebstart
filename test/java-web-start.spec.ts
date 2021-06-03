@@ -1,7 +1,7 @@
 import "mocha";
 import {assert} from "chai";
 import {readFileSync} from "fs";
-import {JavaWebStart} from "../lib";
+import {JavaWebStart} from "../src";
 import path from "path";
 import {parseXml} from "libxmljs2";
 import {URL} from "url";
