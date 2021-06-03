@@ -29,7 +29,7 @@ jobs:
       - name: Remove Files
         uses: JesseTG/rm@v1.0.2
         with:
-          path: "sample.jar"
+          path: /home/runner/work/javawebstart/javawebstart/sample.jar
       - run: npm ci
       - run: npm run build --if-present
       - run: npm test
