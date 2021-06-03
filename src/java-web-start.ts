@@ -119,8 +119,8 @@ export class JavaWebStart {
 			}
 
 			const abortController = global.AbortController ? new global.AbortController() : undefined;
-
-			const request = http.get(jarLocation,{
+			const client = this.jarLocation.startsWith("https") ? https : http;
+			const request = client.get(jarLocation, {
 				abort: abortController && abortController.signal
 			}, (res) => {
 				let counter = 0;
@@ -164,7 +164,17 @@ export class JavaWebStart {
 		});
 	}
 
-	async run(jarLocation?: string): Promise<number> {
+	async run({
+		          jarLocation,
+		          stdout,
+		          stderr,
+		          stdin
+	}: {
+		jarLocation?: string,
+		stdout?: NodeJS.WritableStream,
+		stderr?: NodeJS.WritableStream,
+		stdin?: NodeJS.ReadableStream
+	}): Promise<number> {
 		const jarPath = jarLocation || await this.download();
 		if (!fs.existsSync(jarPath)) {
 			throw new Error("Jar file not found!");
@@ -174,12 +184,15 @@ export class JavaWebStart {
 		}
 		console.info("Starting Java Web Start...");
 		let childProcessRun: Promise<number>;
+		const stdoutStream = stdout || process.stdout;
+		const stderrStream = stderr || process.stderr;
+		const stdinStream = stdin || process.stdin;
 		try {
 			childProcessRun = new Promise<number>((resolve, reject) => {
 				const child = spawn("java", ["-cp", jarPath.toString(), this.mainClass as string], {});
-				child.stdout.pipe(process.stdout);
-				child.stderr.pipe(process.stderr);
-				process.stdin.pipe(child.stdin);
+				child.stdout.pipe(stdoutStream);
+				child.stderr.pipe(stderrStream);
+				stdinStream.pipe(child.stdin);
 				child.on("error", (error) => {
 					reject(error);
 				})
@@ -194,7 +207,7 @@ export class JavaWebStart {
 			console.error(error);
 			throw error;
 		} finally {
-			process.stdin.unpipe();
+			stdinStream.unpipe();
 		}
 	}
 }
