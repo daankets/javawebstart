@@ -237,17 +237,20 @@ export class JavaWebStart {
 		try {
 			childProcessRun = new Promise<number>((resolve, reject) => {
 				const child = spawn("java", ["-cp", jarPath.toString(), this.mainClass as string], {});
-				const l = this.$eventEmitter.on("stop", (signal) => {
+				const listener = (signal:NodeJS.Signals) => {
 					child.kill(signal || "SIGTERM");
-				});
+				};
+				this.$eventEmitter.on("stop", listener);
 				child.stdout.pipe(stdoutStream);
 				child.stderr.pipe(stderrStream);
 				stdinStream.pipe(child.stdin);
 				child.on("error", (error) => {
+					this.$eventEmitter.removeListener("stop", listener);
 					reject(error);
 				})
 				child.on("close", (code) => {
 					console.info("Process terminated");
+					this.$eventEmitter.removeListener("stop", listener);
 					resolve(code || 0);
 				})
 			});
