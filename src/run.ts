@@ -1,10 +1,12 @@
 #!/usr/bin/env node
-import {JavaWebStart} from "./java-web-start";
+import {JavaWebStart} from "./javaWebStart";
 
+const trust = process.argv.includes("--trust");
+const args = process.argv.filter((v) => !v.startsWith("--"));
 /**
  * A new java web start instance
  */
-JavaWebStart.fromArgv(...process.argv)
+JavaWebStart.fromArgv(...args)
 	.then(async(javaWebStart) => {
 
 		/**
@@ -15,6 +17,10 @@ JavaWebStart.fromArgv(...process.argv)
 			process.exit(1);
 		});
 
+		process.on("unhandledRejection", (error) => {
+			process.exit(1);
+		});
+
 		/**
 		 * Make sure the process interrupted properly upon sigint!
 		 */
@@ -22,15 +28,14 @@ JavaWebStart.fromArgv(...process.argv)
 			process.exit(1);
 		});
 
-		process.on("beforeExit",()=>{
-			javaWebStart.stop("SIGINT");
-		})
-
 		console.info(javaWebStart.meta);
 		await new Promise<void>((resolve) => {
 			setTimeout(() => {
 				resolve();
 			}, 500);
-		})
-		return javaWebStart.run();
-	})
+		});
+		return javaWebStart.run({trust:trust}).catch((error) => {
+			console.error(error.message);
+			process.exit(2);
+		});
+	});
