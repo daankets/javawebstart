@@ -15,14 +15,16 @@ a new tool could come in handy... so here we are...
 - **Using** a locally stored JNLP file
 - **Parsing** the downloaded/read JNLP file  
 - **Downloading** the JNLP jar file, with a progress bar
-- **Using** a cached JNLP jar file (provided that there is no newer version)  
+- **Caching** a JNLP jar file (auto check for newer version)  
 - **Running** the JNLP from the downloaded or cached Jar file
 - **Interrupting** The running Java process when the Node process is interrupted
 - **Redirecting** java stdout, stderr to the Node process
 - **Redirecting** Node stdin, to the Java process
+- **Verfifying** the Jar signature using jarsigner (if installed)
 
 # Dependencies
 * A suitable version of **Java** must be installed on your system.
+* A suitable JDK must be installed in order to be able to use the jarsigner validation
 * This library uses the libxmljs2 and cli-progress libraries.
 
 # Installing
@@ -33,7 +35,7 @@ npm -g install javawebstart
 # Usage
 ```bash
 # If locally installed via npm install  -g
-javawebstart <jnlp-url>
+javawebstart <jnlp-url> [--trust]
 
 # Via NPX
 npx -g javawebstart <jnlp-url>
@@ -60,6 +62,7 @@ await starter.run();
 
 ## Run options
 The run method can taken an options object, with the following optional properties:
+- Explicitly trust the jar
 - A jar location
 - An alternative 'WritableStream' for
   - stdout
@@ -80,6 +83,5 @@ Copyright 2009, Squish Tech, LLC. All rights reserved.
 ## Disclaimer
 Java Web Start
 It is up to you to validate if the JNLP and jar file you wish to run come
-from a **trusted source**. At this point I did NOT yet implement any signatures or perform
-any additional checks. I can not be held liable for ANY damage that might occur from using
+from a **trusted source**. I can not be held liable for ANY damage that might occur from using
 this utility. There is no warranty whatsoever.

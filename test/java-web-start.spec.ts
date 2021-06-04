@@ -6,6 +6,7 @@ import path from "path";
 import {parseXml} from "libxmljs2";
 import {URL} from "url";
 import {Writable} from "stream";
+import {WritableStringBuffer} from "../src/writableStringBuffer";
 
 const JNLP_URL = "https://raw.githubusercontent.com/daankets/javawebstart/develop/test/sample.jnlp";
 const JAR_URL = "https://raw.githubusercontent.com/daankets/javawebstart/develop/test/sample.jar";
@@ -51,21 +52,14 @@ describe("The JavaWebStart package", function() {
 			assert.equal(stats.size, 753, "File size does not match");
 		});
 		it("Can run a hosted JAR file", async() => {
-			let output = "";
-
-			class TempWritable extends Writable {
-
-				_write(chunk: any, encoding: BufferEncoding, callback: (error?: (Error | null)) => void) {
-					output += chunk.toString();
-				}
-			}
+			let output = new WritableStringBuffer();
 
 			const jws = await JavaWebStart.downloadJNLP(new URL(JNLP_URL));
-			const stdout = new TempWritable();
 
-			const result = await jws.run({stdout: stdout});
+			const result = await jws.run({trust: true, stdout: output});
+			await output.end();
 			assert.equal(result, 0, "Error code must be 0!");
-			assert.equal(output, "Hello, world!\n", "Wrong output!");
+			assert.equal(output.toString(), "Hello, world!\n", "Wrong output!");
 		});
 	});
 });

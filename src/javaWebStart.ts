@@ -1,5 +1,4 @@
 import {URL} from "url";
-import {spawn} from "child_process";
 import * as http from "http";
 import * as https from "https";
 import * as fs from "fs";
@@ -8,7 +7,7 @@ import * as Path from "path";
 import {PathLike, WriteStream} from "fs";
 import * as cliProgress from "cli-progress";
 import {SingleBar} from "cli-progress";
-import {EventEmitter} from "events";
+import {AbortableChildProcessExecutor} from "./abortableChildProcessExecutor";
 
 /**
  * The main class of the package, a wrapper around a JNLP XML Structure.
@@ -16,8 +15,6 @@ import {EventEmitter} from "events";
  * via parsing a string or via downloading from an http(s):// or file:// url.
  */
 export class JavaWebStart {
-	private $eventEmitter = new EventEmitter();
-
 	/**
 	 * Creates a new JavaWebStart instance, from the XML data of a JNLP file.
 	 * @param jnlpXML The XML Document for the JNLP file
@@ -183,7 +180,7 @@ export class JavaWebStart {
 				res.on("error", (error) => {
 					progress && progress.stop();
 					// console.debug(`= ${counter}b`);
-					writeStream.once("close",()=>{
+					writeStream.once("close", () => {
 						reject(error);
 					});
 					writeStream.close();
@@ -191,7 +188,7 @@ export class JavaWebStart {
 				res.on("end", () => {
 					progress && progress.stop();
 					// console.debug(`= ${counter}b`);
-					writeStream.once("close",()=>{
+					writeStream.once("close", () => {
 						resolve(targetLocation);
 					})
 					writeStream.close();
@@ -211,26 +208,21 @@ export class JavaWebStart {
 	}
 
 	/**
-	 * Method for interrupting a running web start process. Will send SIGINT or SIGTERM to the child process.
-	 * @param signal? Optional signal (SIGINT or SIGTERM)
-	 */
-	stop(signal: "SIGINT" | "SIGTERM" = "SIGINT"): void {
-		this.$eventEmitter.emit("stop", signal);
-	}
-
-	/**
-	 * Runs a JAR file - optionally downloading it first - and returns a promise for the exit code.
+	 * Runs a JAR file - optionally downloading it first - and returns a promise for the exit code, with an extra abort method.
+	 * @param trust Trust the jar file if it is not signed
 	 * @param jarLocation Location of the jar file to run (bypass download)
 	 * @param stdout Alternative stdout WritableStream for capturing std output
 	 * @param stderr Alternative stderr WritableStream for capturing err output
 	 * @param stdin Alternative stdin ReadableStream for providing input
 	 */
 	async run({
+		          trust,
 		          jarLocation,
 		          stdout,
 		          stderr,
 		          stdin
 	          }: {
+		trust?: boolean
 		jarLocation?: string,
 		stdout?: NodeJS.WritableStream,
 		stderr?: NodeJS.WritableStream,
@@ -243,39 +235,35 @@ export class JavaWebStart {
 		if (!this.mainClass) {
 			throw new Error("No main class specified");
 		}
-		console.info("Starting Java Web Start...");
-		let childProcessRun: Promise<number>;
-		const stdoutStream = stdout || process.stdout;
-		const stderrStream = stderr || process.stderr;
-		const stdinStream = stdin || process.stdin;
-		try {
-			childProcessRun = new Promise<number>((resolve, reject) => {
-				const child = spawn("java", ["-cp", jarPath.toString(), this.mainClass as string], {});
-				const listener = (signal: NodeJS.Signals) => {
-					child.kill(signal || "SIGTERM");
-				};
-				this.$eventEmitter.on("stop", listener);
-				child.stdout.pipe(stdoutStream);
-				child.stderr.pipe(stderrStream);
-				stdinStream.pipe(child.stdin);
-				child.on("error", (error) => {
-					this.$eventEmitter.removeListener("stop", listener);
-					reject(error);
-				})
-				child.on("close", (code) => {
-					console.info("Process terminated");
-					this.$eventEmitter.removeListener("stop", listener);
-					resolve(code || 0);
-				})
-			});
+		const jarSignerExecutor = new AbortableChildProcessExecutor("jarsigner", "-verify", jarPath.toString());
 
-			await childProcessRun;
-			return childProcessRun;
-		} catch (error) {
-			console.error(error);
-			throw error;
-		} finally {
-			stdinStream.unpipe();
+		console.debug("Verifying if Jar is signed...");
+		const verified = await new Promise<boolean>((resolve, reject) => {
+			jarSignerExecutor.execute((error, stdout, stderr) => {
+				if (error) {
+					console.error(error.message);
+					if (!trust) {
+						reject(new Error("Unable to verify jar file using jarsigner -verify."));
+					} else {
+						resolve(false);
+					}
+				}
+				if (stdout.toString().indexOf("jar verified.") > -1) {
+					console.info("Jar correcty signed.");
+					resolve(true);
+				} else {
+					console.warn("Jar not (correctly) signed.");
+					resolve(false);
+				}
+			});
+		});
+		if (!verified && !trust) {
+			throw new Error("Jar not trusted. Override using --trust");
+		} else if (!verified && trust) {
+			console.warn("Jar trusted explicitly.");
 		}
+		console.info("Starting Java Web Start...");
+		const executor = new AbortableChildProcessExecutor("java", "-cp", jarPath.toString(), this.mainClass)
+		return executor.spawn({stdout, stderr, stdin});
 	}
 }

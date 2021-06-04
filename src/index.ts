@@ -1,1 +1,2 @@
-export {JavaWebStart} from "./java-web-start";
+export {JavaWebStart} from "./javaWebStart";
+export {AbortableChildProcessExecutor} from "./abortableChildProcessExecutor";
