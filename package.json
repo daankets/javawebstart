@@ -1,6 +1,6 @@
 {
 	"name": "javawebstart",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"description": "A module for running JNLP files or urls",
 	"main": "lib/index.js",
 	"author": {
@@ -14,7 +14,8 @@
 		"clean": "npx tsc --build --clean",
 		"test": "npx mocha -r ts-node/register test/**/*.spec.?s",
 		"build": "npx tsc --build",
-		"start": "node lib/run.js"
+		"start": "node lib/run.js",
+		"prepack": "npm run clean && npm run build"
 	},
 	"directories": {
 		"lib": "lib"
