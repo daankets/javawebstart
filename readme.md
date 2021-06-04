@@ -36,7 +36,7 @@ npm -g install javawebstart
 javawebstart <jnlp-url>
 
 # Via NPX
-npx -g @blackbit/java-web-start <jnlp-url>
+npx -g javawebstart <jnlp-url>
 ```
 
 ## API
