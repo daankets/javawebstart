@@ -84,16 +84,30 @@ export class JavaWebStart {
 	/**
 	 * Returns the JAR location from the JNLP file
 	 */
-	get jarLocation(): string {
+	get jarLocation(): string | null {
 		const codebase = this.jnlpXML.root()?.attr("codebase")?.value();
-		return `${codebase}/${this.jarName}`;
+		return this.jarName && `${codebase}/${this.jarName}` || null;
+	}
+
+	get jarLocations(): { jarName: string, jarLocation: string }[] {
+		const codebase = this.jnlpXML.root()?.attr("codebase")?.value();
+		return this.jarNames.map((jarName) => ({jarName, jarLocation: `${codebase}/${jarName}`}));
+	}
+
+	/**
+	 * Returns the name of the JAR file from the JNLP file
+	 */
+	get jarNames(): string[] {
+		return (this.jnlpXML.find("//resources/jar") as Element[])
+			.map((e) => e.attr("href")?.value())
+			.filter((v) => v) as string[];
 	}
 
 	/**
 	 * Returns the name of the JAR file from the JNLP file
 	 */
 	get jarName(): string | null {
-		return (this.jnlpXML.get("//resources/jar") as Element)?.attr("href")?.value() || null;
+		return (this.jnlpXML.get("//resources/jar[@main='true']") as Element)?.attr("href")?.value() || null;
 	}
 
 	/**
@@ -111,7 +125,7 @@ export class JavaWebStart {
 			title: this.title,
 			vendor: this.vendor,
 			homepage: this.homepage,
-			jarLocation: this.jarLocation,
+			jarLocations: this.jarLocations,
 			mainClass: this.mainClass
 		};
 	}
@@ -131,80 +145,78 @@ export class JavaWebStart {
 	/**
 	 * Downloads the JAR file, and returns a promise for it's path.
 	 */
-	async download(): Promise<PathLike> {
-		const jarLocation = new URL(this.jarLocation);
-
-		return await new Promise((resolve, reject) => {
-			if (!this.jarName) {
-				reject("No jar location!");
-			}
-			const targetLocation = Path.join(process.cwd(), this.jarName as string);
-			let cachedLength = 0;
-			if (fs.existsSync(targetLocation)) {
-				const stat = fs.statSync(targetLocation);
-				if (stat.isFile()) {
-					cachedLength = stat.size;
-				}
-			}
-
-			const abortController = global.AbortController ? new global.AbortController() : undefined;
-			const client = this.jarLocation.startsWith("https") ? https : http;
-			const request = client.get(jarLocation, {
-				abort: abortController && abortController.signal
-			}, (res) => {
-				let counter = 0;
-				let progress: SingleBar | null = null;
-				let writeStream: WriteStream;
-				if (res.headers["content-length"]) {
-					const contentLength = parseInt(res.headers["content-length"]);
-					if (cachedLength && cachedLength === contentLength) {
-						console.debug("Cached version found at %s. Running from cache...", targetLocation);
-						abortController ? abortController.abort() : request.abort();
-						resolve(targetLocation);
-						return;
+	async download(): Promise<PathLike[]> {
+		const jarLocations = this.jarLocations.map((jl) => ({jarName: jl.jarName, url:new URL(jl.jarLocation)}));
+		return await Promise.all(jarLocations.map((jl) => {
+			return new Promise<PathLike>((resolve, reject) => {
+				const targetLocation = Path.join(process.cwd(), jl.jarName);
+				let cachedLength = 0;
+				if (fs.existsSync(targetLocation)) {
+					const stat = fs.statSync(targetLocation);
+					if (stat.isFile()) {
+						cachedLength = stat.size;
 					}
-					if ((res.statusCode as number) >= 400) {
-						console.warn(res.statusCode, res.statusMessage);
-						reject("Download failed!");
-					}
-					writeStream = fs.createWriteStream(targetLocation, {encoding: "binary"});
-					console.debug("Downloading %s ...", this.jarName);
-					progress = new cliProgress.SingleBar({
-						format: 'Downloading {bar} {percentage}% ({value}/{total} bytes)',
-						barCompleteChar: '\u2588',
-						barIncompleteChar: '\u2591',
-						hideCursor: true
-					});
-					progress.start(contentLength, 0, {})
 				}
-				res.on("error", (error) => {
-					progress && progress.stop();
-					// console.debug(`= ${counter}b`);
-					writeStream.once("close", () => {
-						reject(error);
+
+				const abortController = global.AbortController ? new global.AbortController() : undefined;
+				const client = jl.url.protocol.startsWith("https") ? https : http;
+				const request = client.get(jl.url, {
+					abort: abortController && abortController.signal
+				}, (res) => {
+					let counter = 0;
+					let progress: SingleBar | null = null;
+					let writeStream: WriteStream;
+					if (res.headers["content-length"]) {
+						const contentLength = parseInt(res.headers["content-length"]);
+						if (cachedLength && cachedLength === contentLength) {
+							console.debug("Cached version found at %s. Running from cache...", targetLocation);
+							abortController ? abortController.abort() : request.abort();
+							resolve(targetLocation);
+							return;
+						}
+						if ((res.statusCode as number) >= 400) {
+							console.warn(res.statusCode, res.statusMessage);
+							reject("Download failed!");
+						}
+						writeStream = fs.createWriteStream(targetLocation, {encoding: "binary"});
+						console.debug("Downloading %s ...", jl.jarName);
+						progress = new cliProgress.SingleBar({
+							format: 'Downloading {bar} {percentage}% ({value}/{total} bytes)',
+							barCompleteChar: '\u2588',
+							barIncompleteChar: '\u2591',
+							hideCursor: true
+						});
+						progress.start(contentLength, 0, {})
+					}
+					res.on("error", (error) => {
+						progress && progress.stop();
+						// console.debug(`= ${counter}b`);
+						writeStream.once("close", () => {
+							reject(error);
+						});
+						writeStream.close();
 					});
-					writeStream.close();
-				});
-				res.on("end", () => {
-					progress && progress.stop();
-					// console.debug(`= ${counter}b`);
-					writeStream.once("close", () => {
-						resolve(targetLocation);
+					res.on("end", () => {
+						progress && progress.stop();
+						// console.debug(`= ${counter}b`);
+						writeStream.once("close", () => {
+							resolve(targetLocation);
+						})
+						writeStream.close();
 					})
-					writeStream.close();
-				})
-				res.on("data", (data) => {
-					// console.debug(`+ ${data.length}b`);
-					counter += data.length;
-					progress && progress.update(counter);
-					writeStream.write(data);
+					res.on("data", (data) => {
+						// console.debug(`+ ${data.length}b`);
+						counter += data.length;
+						progress && progress.update(counter);
+						writeStream.write(data);
+					});
 				});
+				request.on("error", (error) => {
+					reject(error);
+				});
+				request.end();
 			});
-			request.on("error", (error) => {
-				reject(error);
-			});
-			request.end();
-		});
+		}));
 	}
 
 	/**
@@ -217,53 +229,55 @@ export class JavaWebStart {
 	 */
 	async run({
 		          trust,
-		          jarLocation,
+		          jarLocations,
 		          stdout,
 		          stderr,
 		          stdin
 	          }: {
 		trust?: boolean
-		jarLocation?: string,
+		jarLocations?: string[],
 		stdout?: NodeJS.WritableStream,
 		stderr?: NodeJS.WritableStream,
 		stdin?: NodeJS.ReadableStream
 	} = {}): Promise<number> {
-		const jarPath = jarLocation || await this.download();
-		if (!fs.existsSync(jarPath)) {
-			throw new Error("Jar file not found!");
+		const jarPaths = jarLocations || await this.download();
+		for (const jarPath of jarPaths) {
+			if (!fs.existsSync(jarPath)) {
+				throw new Error("Jar file not found!");
+			}
+			const jarSignerExecutor = new AbortableChildProcessExecutor("jarsigner", "-verify", jarPath.toString());
+			console.debug("Verifying if Jar is signed...");
+			const verified = await new Promise<boolean>((resolve, reject) => {
+				jarSignerExecutor.execute((error, stdout, stderr) => {
+					if (error) {
+						console.error(error.message);
+						if (!trust) {
+							reject(new Error("Unable to verify jar file using jarsigner -verify."));
+						} else {
+							resolve(false);
+						}
+					}
+					if (stdout.toString().indexOf("jar verified.") > -1) {
+						console.info("Jar correcty signed.");
+						resolve(true);
+					} else {
+						console.warn("Jar not (correctly) signed.");
+						resolve(false);
+					}
+				});
+			});
+			if (!verified && !trust) {
+				throw new Error("Jar not trusted. Override using --trust");
+			} else if (!verified && trust) {
+				console.warn("Jar trusted explicitly.");
+			}
 		}
 		if (!this.mainClass) {
 			throw new Error("No main class specified");
 		}
-		const jarSignerExecutor = new AbortableChildProcessExecutor("jarsigner", "-verify", jarPath.toString());
-
-		console.debug("Verifying if Jar is signed...");
-		const verified = await new Promise<boolean>((resolve, reject) => {
-			jarSignerExecutor.execute((error, stdout, stderr) => {
-				if (error) {
-					console.error(error.message);
-					if (!trust) {
-						reject(new Error("Unable to verify jar file using jarsigner -verify."));
-					} else {
-						resolve(false);
-					}
-				}
-				if (stdout.toString().indexOf("jar verified.") > -1) {
-					console.info("Jar correcty signed.");
-					resolve(true);
-				} else {
-					console.warn("Jar not (correctly) signed.");
-					resolve(false);
-				}
-			});
-		});
-		if (!verified && !trust) {
-			throw new Error("Jar not trusted. Override using --trust");
-		} else if (!verified && trust) {
-			console.warn("Jar trusted explicitly.");
-		}
 		console.info("Starting Java Web Start...");
-		const executor = new AbortableChildProcessExecutor("java", "-cp", jarPath.toString(), this.mainClass)
+		const cpSeparator = process.platform === "win32" ? ";" : ":";
+		const executor = new AbortableChildProcessExecutor("java", "-cp", jarPaths.join(cpSeparator), this.mainClass)
 		return executor.spawn({stdout, stderr, stdin});
 	}
 }
