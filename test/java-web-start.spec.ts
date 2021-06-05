@@ -14,7 +14,7 @@ const EXPECTED_META_INFO = Object.freeze({
 	vendor: "Daan Kets",
 	title: "Sample JNLP",
 	homepage: "https://github.com/daankets/javawebstart",
-	jarLocation: JAR_URL,
+	jarLocations: [{jarName:"sample.jar",jarLocation:JAR_URL}],
 	mainClass: "MainClass"
 });
 
@@ -44,10 +44,10 @@ describe("The JavaWebStart package", function() {
 		});
 		it("Can download a hosted JAR file", async() => {
 			const jws = await JavaWebStart.downloadJNLP(new URL(JNLP_URL));
-			const localFile = await jws.download();
-			assert.equal(localFile, path.join(process.cwd(), "sample.jar"));
-			assert.isTrue(existsSync(localFile), "File does not exist!");
-			const stats = statSync(localFile);
+			const localFiles = await jws.download();
+			assert.equal(localFiles[0], path.join(process.cwd(), "sample.jar"));
+			assert.isTrue(existsSync(localFiles[0]), "File does not exist!");
+			const stats = statSync(localFiles[0]);
 			assert.isTrue(stats.isFile(), "Not a file!");
 			assert.equal(stats.size, 753, "File size does not match");
 		});
