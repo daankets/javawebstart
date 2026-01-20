@@ -4,7 +4,7 @@ import path from "path";
 import {parseXml} from "libxmljs2";
 import {URL} from "url";
 import {WritableStringBuffer} from "../src/writableStringBuffer";
-import {expect, describe} from "@jest/globals";
+import {expect, describe, it} from "@jest/globals";
 
 const JNLP_URL = "https://raw.githubusercontent.com/daankets/javawebstart/develop/test/sample.jnlp";
 const JAR_URL = "https://raw.githubusercontent.com/daankets/javawebstart/develop/test/sample.jar";
