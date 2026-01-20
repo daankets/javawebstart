@@ -1,21 +1,22 @@
 {
 	"name": "javawebstart",
-	"version": "1.2.0",
+	"version": "1.2.1",
 	"description": "A module for running JNLP files or urls",
 	"main": "lib/index.js",
 	"author": {
 		"name": "Daan Kets",
 		"email": "daankets@blackbit.be"
 	},
+	"type": "module",
 	"bin": {
 		"javawebstart": "lib/run.js"
 	},
 	"scripts": {
 		"clean": "npx tsc --build --clean",
-		"test": "npx mocha -r ts-node/register test/**/*.spec.?s",
+		"test": "npx jest",
 		"build": "npx tsc --build",
 		"start": "node lib/run.js",
-		"prepack": "npm run clean && npm run build"
+		"prepack": "npm run clean && npm run build && npm run test"
 	},
 	"directories": {
 		"lib": "lib"
@@ -35,15 +36,12 @@
 	"license": "MIT",
 	"devDependencies": {
 		"@eslint/js": "^9.39.2",
-		"@types/chai": "^5.2.3",
 		"@types/cli-progress": "^3.11.6",
-		"@types/mocha": "^10.0.10",
 		"@types/node": "^25.0.9",
-		"chai": "^6.2.2",
 		"eslint": "^9.39.2",
 		"globals": "^17.0.0",
 		"jest": "^30.2.0",
-		"mocha": "^0.13.0",
+		"ts-jest": "^29.4.6",
 		"ts-node": "^1.7.1",
 		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.53.1"

@@ -161,7 +161,7 @@ export class JavaWebStart {
 				const abortController = global.AbortController ? new global.AbortController() : undefined;
 				const client = jl.url.protocol.startsWith("https") ? https : http;
 				const request = client.get(jl.url, {
-					abort: abortController && abortController.signal
+					signal: abortController && abortController.signal
 				}, (res) => {
 					let counter = 0;
 					let progress: SingleBar | null = null;

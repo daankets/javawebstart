@@ -2,6 +2,11 @@
 This document details the differences between the releases.
 The latest release is on top.
 
+## 1.2.1 - Fix dependabot vulnerability alerts
+- Fix vulnerability alerts from dependabot by updating dependencies
+- Move to JEST for testing framework
+- Remove old dependencies
+
 ## 1.2.0 - Multi-jar support
 - Support for multiple jar files (download, cache & verify)
 
