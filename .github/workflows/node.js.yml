@@ -14,22 +14,22 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [ 14.x, 15.x, 16.x ]
+        node-version: [ 25.x ]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-      - uses: actions/setup-java@v2
+      - uses: actions/setup-java@v4
         with:
-          distribution: 'adopt' # See 'Supported distributions' for available options
-          java-version: '13'
+          distribution: 'temurin' # Use supported distribution
+          java-version: '17'
       - name: Remove Files
         uses: JesseTG/rm@v1.0.2
         with:
-          path: /home/runner/work/javawebstart/javawebstart/sample.jar
+          path: ${{ github.workspace }}/sample.jar
       - run: npm ci
       - run: npm run build --if-present
       - run: npm test
@@ -37,12 +37,12 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        node-version: [ 16.x ]
+        node-version: [ 25.x ]
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
       - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+        uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
       - run: npm ci
@@ -50,7 +50,7 @@ jobs:
       - name: get-npm-version
         id: package-version
         uses: martinbeentjes/npm-get-version-action@master
-      - uses: actions/upload-artifact@v2
+      - uses: actions/upload-artifact@v6
         with:
           name: javawebstart
           path: javawebstart-${{steps.package-version.outputs.current-version}}.tgz

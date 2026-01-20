@@ -13,7 +13,7 @@
 	},
 	"scripts": {
 		"clean": "npx tsc --build --clean",
-		"test": "npx jest",
+		"test": "npx jest --roots test",
 		"build": "npx tsc --build",
 		"start": "node lib/run.js",
 		"prepack": "npm run clean && npm run build && npm run test"
